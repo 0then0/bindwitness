@@ -121,15 +121,15 @@ var testedCapturePlatforms = map[[3]string]bool{
 	{"linux", "arm64", "2.41"}: true,
 }
 
-// Native validation candidates enable AMD64 via -X. Such binaries become
-// distributable only after the entire architecture/glibc matrix succeeds.
-var enableAMD64Capture = "false"
+// Native validation covers AMD64 in both supported userspaces. Validation and
+// release builds explicitly use this same profile; tests also exercise disabling it.
+var enableAMD64Capture = "true"
 
 // Use the evidence's platform, including for portable offline evaluation.
 func capturePlatformIssue(osName, architecture, glibc string) *Finding {
 	if testedCapturePlatforms[[3]string{osName, architecture, glibc}] {
 		if architecture == "amd64" && enableAMD64Capture != "true" {
-			return &Finding{ID: "UNVALIDATED_PLATFORM", Message: "native amd64 validation is pending; capture is not enabled in this build"}
+			return &Finding{ID: "UNVALIDATED_PLATFORM", Message: "amd64 capture is not enabled in this build"}
 		}
 		return nil
 	}

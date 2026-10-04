@@ -22,18 +22,17 @@ included test fixtures, not for running the CLI.
 ## Supported environments
 
 The v0.1.1 validation matrix targets Linux **AMD64 and ARM64**, each with
-**glibc 2.36 and 2.41** in pinned Debian Bookworm and Trixie userspaces. Native
-AMD64 verification is pending; ARM64 is the previously validated platform.
+**glibc 2.36 and 2.41** in pinned Debian Bookworm and Trixie userspaces. All four
+native jobs passed in [GitHub Actions](https://github.com/0then0/bindwitness/actions/runs/37236935579).
 See the [validation status and reproduction commands](docs/validation.md).
 Publishing v0.1.1 requires all four native jobs to pass. Other architecture/glibc
 combinations return `UNRESOLVED`; offline `check` and `compare` use the saved
 platform provenance and remain portable, including on macOS ARM64.
 
-Ordinary source builds keep AMD64 capture `UNRESOLVED` while its native
-verification is pending. The validation script explicitly enables AMD64 in
-candidate builds on both architectures; only the complete passing matrix makes
-those candidates eligible for release. This build setting does not certify an
-unexecuted combination.
+Ordinary source builds enable the validated AMD64 and ARM64 combinations.
+Validation uses the same capture profile on both architectures; release binaries
+are eligible for publication only after the complete matrix passes in their own
+workflow run.
 
 An Ubuntu 24.04 runner executes the workload inside the pinned Debian container.
 This validates that Debian userspace, not native Ubuntu's different glibc version.
@@ -50,8 +49,8 @@ does not perform general ABI analysis or predict unexecuted paths.
 ## Quick start
 
 The v0.1.1 release automation prepares Linux AMD64 and ARM64 archives from the
-native validated binaries. AMD64 availability remains pending validation and
-publication. Check [GitHub Releases](https://github.com/0then0/bindwitness/releases)
+native validated binaries. Publication remains pending.
+Check [GitHub Releases](https://github.com/0then0/bindwitness/releases)
 for published assets; download the matching archive and `SHA256SUMS`, and verify
 its checksum before extracting.
 
@@ -63,10 +62,6 @@ cd bindwitness
 mkdir -p build
 CGO_ENABLED=0 go build -trimpath -o build/bindwitness ./cmd/bindwitness
 ```
-
-On AMD64, use the [native validation script](docs/validation.md#run-the-full-linux-checks)
-to prepare a candidate; the ordinary source build above conservatively remains
-unresolved until native AMD64 validation is complete.
 
 On supported Linux, build the demonstration with GCC or Clang and check it:
 

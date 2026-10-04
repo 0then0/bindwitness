@@ -141,9 +141,9 @@ Offline evaluation checks the platform recorded in provenance and the saved ELF
 class/machine of the executable and observed binding objects, independently of
 the machine evaluating the report or historical files. Unused declared objects
 do not establish a workload platform. See [current validation status](validation.md).
-Ordinary source builds conservatively leave AMD64 capture unresolved while
-native validation is pending; validation candidates explicitly enable that
-matrix and are eligible for release only after all four native jobs succeed.
+Ordinary source builds enable the validated AMD64 and ARM64 matrix. Release
+binaries are eligible for publication only after all four native jobs succeed
+in their own workflow run.
 Live capture also requires executable and loader identities to match the CLI's
 architecture and ELF64 class. Compat ELF32/x32 or foreign-machine artifacts
 remain unresolved.

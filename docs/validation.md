@@ -8,10 +8,17 @@ CPython and zlib are validation workloads, not dependencies of the CLI.
 
 The v0.1.1 matrix has four native jobs using the same validation scripts:
 
-- Linux AMD64, Debian 12 Bookworm, glibc 2.36, Go 1.25.14: native verification pending.
-- Linux AMD64, Debian 13 Trixie, glibc 2.41, Go 1.25.14: native verification pending.
-- Linux ARM64, Debian 12 Bookworm, glibc 2.36, GCC 12.2.0, Go 1.25.14: local native checks passed.
-- Linux ARM64, Debian 13 Trixie, glibc 2.41, GCC 14.2.0, Go 1.25.14: local native checks passed.
+- Linux AMD64, Debian 12 Bookworm, glibc 2.36, Go 1.25.14: native GitHub Actions checks passed.
+- Linux AMD64, Debian 13 Trixie, glibc 2.41, Go 1.25.14: native GitHub Actions checks passed.
+- Linux ARM64, Debian 12 Bookworm, glibc 2.36, GCC 12.2.0, Go 1.25.14: native GitHub Actions and local checks passed.
+- Linux ARM64, Debian 13 Trixie, glibc 2.41, GCC 14.2.0, Go 1.25.14: native GitHub Actions and local checks passed.
+
+[Run 37236935579](https://github.com/0then0/bindwitness/actions/runs/37236935579)
+passed the complete four-job matrix for revision
+`6a5cb3c09aa0a0aa7facf8758cd81a01da02ede1`, including both Bookworm two-root
+zlib jobs. It exercised installed and release binaries with the same enabled
+AMD64 profile now used by ordinary source builds. The release job was skipped
+because this was a `main` push, not a version tag.
 
 AMD64 jobs use `ubuntu-24.04`; ARM64 jobs use `ubuntu-24.04-arm`. These are native
 [GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
@@ -20,18 +27,20 @@ does not establish the workload's glibc version. Native Ubuntu 24.04 userspace
 is outside this matrix. Other architecture/glibc combinations remain unresolved.
 
 Local Linux ARM64 validation uses Docker Desktop on a macOS ARM64 host, with
-two userspaces on the same ARM64 VM kernel. No AMD64 native runner is available
-in this development session; neither a cross-build nor QEMU establishes native
-validation. macOS ARM64 checks offline analysis only. Publishing v0.1.1 requires
+two userspaces on the same ARM64 VM kernel. Local cross-builds only check
+packaging; native AMD64 evidence comes from the GitHub-hosted jobs above.
+Neither a cross-build nor QEMU establishes native validation. macOS ARM64 checks
+offline analysis only. Publishing v0.1.1 requires
 the entire native four-job GitHub Actions matrix to pass.
 
-Ordinary source builds leave AMD64 capture unresolved. To exercise the proposed
-AMD64 combinations, `validate.sh` explicitly builds test/install/release
+Ordinary source builds enable the validated AMD64 and ARM64 combinations.
+`validate.sh` explicitly builds test/install/release
 candidates with `-X bindwitness/internal/witness.enableAMD64Capture=true`, on
 both architectures so released offline tools can evaluate either platform.
-This build setting enables testing; it is not a validation result. Candidates
-must not be published until all four native jobs succeed. No runtime environment
-override automatically enables this setting or changes the binding profile.
+This build setting selects the profile; native execution establishes validation.
+Candidates must not be published until all four jobs succeed in their own run.
+No runtime environment override automatically enables this setting or changes
+the binding profile.
 
 [scripts/validation.Dockerfile](../scripts/validation.Dockerfile) pins the images:
 
@@ -152,10 +161,8 @@ UNRESOLVED; their validation scripts exit 0 when the expected result is obtained
 [GitHub Actions](../.github/workflows/ci.yml) runs the same matrix and retains
 JSON reports and the release binary as artifacts.
 
-For quick candidate checks in either target Linux userspace, run
-`go test -ldflags='-X bindwitness/internal/witness.enableAMD64Capture=true' ./...`
-and `go vet ./...`. Ordinary `go test ./...` on ARM64 checks the default profile;
-on AMD64 its PASS-expecting capture integration tests require the candidate flag.
+For quick checks in either target Linux userspace, run `go test ./...` and
+`go vet ./...`. The default profile matches the explicit validation profile.
 On macOS, Go skips Linux-only integration tests; parser, evaluator, schema-version
 and saved-report checks still run. Use the Linux matrix to check capture behavior.
 
