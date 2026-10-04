@@ -30,6 +30,12 @@ jobs:
             env LD_LIBRARY_PATH=/opt/cpython/lib PYTHONHOME=/opt/cpython /opt/cpython/bin/python3 scripts/zlib-validation.py \
               build/validation/bookworm/installed/bindwitness build/zlib-comparison build/zlib-roots/one build/zlib-roots/two
           '
+      - name: Give runner ownership of validation artifacts
+        if: always()
+        run: |
+          if [ -d build ]; then
+            sudo chown -R "$(id -u):$(id -g)" build
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
