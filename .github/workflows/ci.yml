@@ -17,7 +17,7 @@ jobs:
           - name: trixie
             base: golang:1.25-trixie@sha256:2c4c60ef415fbfa5e90300722293bef36c5e63fae17570ce18f580af933dbd73
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build immutable validation environment
         run: docker build -f scripts/validation.Dockerfile --build-arg BASE='${{ matrix.base }}' -t bindwitness-validation .
       - name: Race, fuzz, native, CPython and release checks
@@ -30,7 +30,7 @@ jobs:
             env LD_LIBRARY_PATH=/opt/cpython/lib PYTHONHOME=/opt/cpython /opt/cpython/bin/python3 scripts/zlib-validation.py \
               build/validation/bookworm/installed/bindwitness build/zlib-comparison build/zlib-roots/one build/zlib-roots/two
           '
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: reports-${{ matrix.name }}-arm64

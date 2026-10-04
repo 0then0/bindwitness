@@ -6,3 +6,6 @@ FROM ${BASE}
 # upstream CPython shared extension from the official Python image instead.
 COPY --from=cpython /usr/local /opt/cpython
 WORKDIR /work
+# The runner owns the bind-mounted checkout; validation runs as root here.
+# Trust only this checkout so Go can retain VCS stamping on installed binaries.
+RUN git config --system --add safe.directory /work
