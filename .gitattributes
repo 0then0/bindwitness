@@ -1,0 +1,3 @@
+# Keep real loader diagnostics and compiler output byte-for-byte, including blank lines.
+testdata/traces/*.trace whitespace=-blank-at-eol
+testdata/reports/*/cc.txt whitespace=-blank-at-eof

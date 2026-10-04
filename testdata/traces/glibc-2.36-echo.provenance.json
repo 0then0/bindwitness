@@ -1,0 +1,30 @@
+{
+  "source": "unmodified diagnostic stream from real glibc dynamic loader",
+  "validation_date": "2026-10-04",
+  "command": [
+    "/bin/echo",
+    "probe"
+  ],
+  "environment_overrides": {
+    "LD_DEBUG": "bindings,files"
+  },
+  "glibc": "2.36",
+  "architecture": "aarch64",
+  "os_release": "PRETTY_NAME=\"Debian GNU/Linux 12 (bookworm)\"\nNAME=\"Debian GNU/Linux\"\nVERSION_ID=\"12\"\nVERSION=\"12 (bookworm)\"\nVERSION_CODENAME=bookworm\nID=debian\nHOME_URL=\"https://www.debian.org/\"\nSUPPORT_URL=\"https://www.debian.org/support\"\nBUG_REPORT_URL=\"https://bugs.debian.org/\"\n",
+  "base_image": "golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437",
+  "trace_sha256": "47848b314d1a86abb1dc424631736d5c64b2484e6989c49eaaaef6ad6ebab6bd",
+  "artifacts": {
+    "/bin/echo": {
+      "resolved_path": "/usr/bin/echo",
+      "sha256": "06b166eee3ef88d62a7174a4a03a42416d959fb4bd05754d597365f89b9cd984"
+    },
+    "/lib/ld-linux-aarch64.so.1": {
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+      "sha256": "17538b8f9889a470c061f69a8fea8124da89627311cd16546c133a89f09056df"
+    },
+    "/lib/aarch64-linux-gnu/libc.so.6": {
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/libc.so.6",
+      "sha256": "e4ac8ae1d81e4865e3aadedb962879cf9415903b3f2ba81ec75e9962b86ab8b0"
+    }
+  }
+}

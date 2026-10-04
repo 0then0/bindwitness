@@ -31,3 +31,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Disposable native fixtures, local binaries and validation runs
+/build/
+/dist/
+/bindwitness

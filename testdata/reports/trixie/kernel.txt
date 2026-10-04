@@ -1,0 +1,1 @@
+Linux 6dea02bf8f27 7.0.14-linuxkit #1 SMP PREEMPT Fri Sep 18 10:19:32 UTC 2026 aarch64 GNU/Linux

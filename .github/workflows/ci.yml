@@ -1,0 +1,41 @@
+name: Linux integration
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: bookworm
+            base: golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437
+          - name: trixie
+            base: golang:1.25-trixie@sha256:2c4c60ef415fbfa5e90300722293bef36c5e63fae17570ce18f580af933dbd73
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build immutable validation environment
+        run: docker build -f scripts/validation.Dockerfile --build-arg BASE='${{ matrix.base }}' -t bindwitness-validation .
+      - name: Race, fuzz, native, CPython and release checks
+        run: docker run --rm -v "$PWD:/work" -w /work bindwitness-validation sh scripts/validate.sh 'build/validation/${{ matrix.name }}'
+      - name: Two upstream zlib installations
+        if: matrix.name == 'bookworm'
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work bindwitness-validation sh -c '
+            sh scripts/build-zlib-roots.sh /work/build/zlib-roots
+            env LD_LIBRARY_PATH=/opt/cpython/lib PYTHONHOME=/opt/cpython /opt/cpython/bin/python3 scripts/zlib-validation.py \
+              build/validation/bookworm/installed/bindwitness build/zlib-comparison build/zlib-roots/one build/zlib-roots/two
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-${{ matrix.name }}-arm64
+          path: |
+            build/validation/${{ matrix.name }}/**/*.json
+            build/validation/${{ matrix.name }}/*.txt
+            build/validation/${{ matrix.name }}/release/bindwitness
+            build/zlib-comparison/*.json

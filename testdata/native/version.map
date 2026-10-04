@@ -1,0 +1,1 @@
+BW_1.0 { global: shared_value; dormant; local: *; };

@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "command": [
+    "/opt/cpython/bin/python3",
+    "-c",
+    "import json,sys,zlib; p=b'BindWitness: short known native payload\\x00\\x01BindWitness: short known native payload\\x00\\x01BindWitness: short known native payload\\x00\\x01BindWitness: short known native payload\\x00\\x01'; c=zlib.compress(p); assert zlib.decompress(c)==p; print(json.dumps({\"python\":sys.version,\"zlib_compile\":zlib.ZLIB_VERSION,\"zlib_runtime\":zlib.ZLIB_RUNTIME_VERSION,\"payload_hex\":p.hex(),\"round_trip\":True}))"
+  ],
+  "working_directory": "/work/build/validation/final-bookworm/zlib",
+  "environment": {
+    "PYTHONHOME": "/opt/cpython",
+    "LD_LIBRARY_PATH": "/opt/cpython/lib"
+  },
+  "deadline": "10s",
+  "limits": {
+    "stdout_bytes": 16384,
+    "stderr_bytes": 16384,
+    "trace_bytes": 2097152
+  },
+  "roots": {
+    "system": "/"
+  },
+  "objects": {
+    "python-zlib": {
+      "root": "system",
+      "path": "opt/cpython/lib/python3.11/lib-dynload/zlib.cpython-311-aarch64-linux-gnu.so"
+    },
+    "zlib": {
+      "root": "system",
+      "path": "usr/lib/aarch64-linux-gnu/libz.so.1.2.13"
+    },
+    "python": {
+      "root": "system",
+      "path": "opt/cpython/bin/python3.11"
+    }
+  },
+  "selectors": [
+    {
+      "reference": "python-zlib",
+      "symbol": "deflate",
+      "providers": [
+        "zlib"
+      ],
+      "required": true
+    },
+    {
+      "reference": "python-zlib",
+      "symbol": "inflate",
+      "providers": [
+        "zlib"
+      ],
+      "required": true
+    },
+    {
+      "reference": "python-zlib",
+      "symbol": "inflateBack",
+      "providers": [
+        "zlib"
+      ],
+      "required": true
+    }
+  ]
+}

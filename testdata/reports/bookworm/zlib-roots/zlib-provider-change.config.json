@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "left_roots": {
+    "system": "/",
+    "z1": "/work/build/validation/bookworm/zlib-builds/one",
+    "z2": "/work/build/validation/bookworm/zlib-builds/two"
+  },
+  "right_roots": {
+    "system": "/",
+    "z1": "/work/build/validation/bookworm/zlib-builds/one",
+    "z2": "/work/build/validation/bookworm/zlib-builds/two"
+  },
+  "objects": {
+    "python-zlib": {
+      "root": "system",
+      "path": "opt/cpython/lib/python3.11/lib-dynload/zlib.cpython-311-aarch64-linux-gnu.so"
+    },
+    "zlib": {
+      "root": "system",
+      "path": "usr/lib/aarch64-linux-gnu/libz.so.1.2.13"
+    },
+    "python": {
+      "root": "system",
+      "path": "opt/cpython/bin/python3.11"
+    },
+    "z1": {
+      "root": "z1",
+      "path": "lib/libz.so.1.3.1"
+    },
+    "z2": {
+      "root": "z2",
+      "path": "lib/libz.so.1.3.1"
+    }
+  },
+  "selectors": [
+    {
+      "reference": "python-zlib",
+      "symbol": "deflate",
+      "providers": [
+        "z2"
+      ],
+      "required": true
+    },
+    {
+      "reference": "python-zlib",
+      "symbol": "inflate",
+      "providers": [
+        "z2"
+      ],
+      "required": true
+    }
+  ]
+}

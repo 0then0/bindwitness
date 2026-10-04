@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "command": [
+    "./host",
+    "./a/libsame.so",
+    "./b/libsame.so",
+    "./consumer.so",
+    "normal"
+  ],
+  "working_directory": "/out/public-bookworm/native/fixtures",
+  "environment": {},
+  "deadline": "5s",
+  "limits": {
+    "stdout_bytes": 4096,
+    "stderr_bytes": 4096,
+    "trace_bytes": 1048576
+  },
+  "roots": {
+    "fixtures": "/out/public-bookworm/native/fixtures"
+  },
+  "objects": {
+    "host": {
+      "root": "fixtures",
+      "path": "host"
+    },
+    "consumer": {
+      "root": "fixtures",
+      "path": "consumer.so"
+    },
+    "a": {
+      "root": "fixtures",
+      "path": "a/libsame.so"
+    },
+    "b": {
+      "root": "fixtures",
+      "path": "b/libsame.so"
+    }
+  },
+  "selectors": [
+    {
+      "reference": "consumer",
+      "symbol": "dormant",
+      "trace_version": "",
+      "providers": [
+        "a"
+      ],
+      "required": true
+    }
+  ]
+}

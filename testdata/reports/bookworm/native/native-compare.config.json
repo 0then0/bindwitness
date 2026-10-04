@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "left_roots": {
+    "fixtures": "/out/public-bookworm/native/fixtures"
+  },
+  "right_roots": {
+    "fixtures": "/out/public-bookworm/native/fixtures"
+  },
+  "objects": {
+    "consumer": {
+      "root": "fixtures",
+      "path": "consumer.so"
+    },
+    "a": {
+      "root": "fixtures",
+      "path": "a/libsame.so"
+    },
+    "b": {
+      "root": "fixtures",
+      "path": "b/libsame.so"
+    }
+  },
+  "selectors": [
+    {
+      "reference": "consumer",
+      "symbol": "shared_value",
+      "trace_version": "",
+      "providers": [
+        "a",
+        "b"
+      ],
+      "required": true
+    }
+  ]
+}
