@@ -49,8 +49,7 @@ does not perform general ABI analysis or predict unexecuted paths.
 ## Quick start
 
 The v0.1.1 release automation prepares Linux AMD64 and ARM64 archives from the
-native validated binaries. Publication remains pending.
-Check [GitHub Releases](https://github.com/0then0/bindwitness/releases)
+native validated binaries. Check [GitHub Releases](https://github.com/0then0/bindwitness/releases)
 for published assets; download the matching archive and `SHA256SUMS`, and verify
 its checksum before extracting.
 
