@@ -36,6 +36,9 @@ does not perform general ABI analysis or predict unexecuted paths.
 
 ## Quick start
 
+Prebuilt Linux ARM64 binaries are available from [GitHub Releases](https://github.com/0then0/bindwitness/releases).
+Download the archive and `SHA256SUMS`, and verify the checksum before extracting.
+
 Clone the repository and build with Go 1.25 or newer:
 
 ```sh

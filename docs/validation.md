@@ -141,6 +141,13 @@ and JSON schemas. It does not include development fixtures. Verify the checksum
 before extracting a distributed archive, then run `./bindwitness --version` and
 check your own contract. Packaging does not publish a GitHub release.
 
+Pushing a version tag such as `v0.1.0` runs the Linux matrix and publishes a
+GitHub release only after both environments pass. The release job packages the
+validated Bookworm binary from that same workflow run, checks the CLI version
+against the tag, verifies the archive checksum and binary contents, and uploads
+the archive and `SHA256SUMS` before publishing the draft. The tag must match the
+version declared by the CLI.
+
 Short fuzz runs and the declared integration matrix do not establish exhaustive
 parser coverage, ABI compatibility or behavior on unexecuted workload paths.
 See [report limitations](report-format.md#capture-limitations) before interpreting

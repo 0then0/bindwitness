@@ -45,3 +45,46 @@ jobs:
             build/validation/${{ matrix.name }}/*.txt
             build/validation/${{ matrix.name }}/release/bindwitness
             build/zlib-comparison/*.json
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: linux
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Package the validated Linux ARM64 binary
+        run: |
+          gh run download "$GITHUB_RUN_ID" --name reports-bookworm-arm64 --dir build/release-artifact
+          binary=build/release-artifact/validation/bookworm/release/bindwitness
+          chmod +x "$binary"
+          test "$GITHUB_REF_NAME" = "v$(sed -n 's/^const Version = "\(.*\)"$/\1/p' internal/witness/types.go)"
+          test "$("$binary" --version)" = "bindwitness ${GITHUB_REF_NAME#v}"
+          sh scripts/package-release.sh "$binary"
+          (cd dist && sha256sum --check SHA256SUMS)
+          mkdir -p build/release-check
+          tar xzf "dist/bindwitness-${GITHUB_REF_NAME#v}-linux-arm64.tar.gz" -C build/release-check
+          cmp "$binary" "build/release-check/bindwitness-${GITHUB_REF_NAME#v}-linux-arm64/bindwitness"
+      - name: Publish the release with archive and checksum
+        run: |
+          cat > build/release-notes.md <<'NOTES'
+          BindWitness v0.1.0 is the first public release: regression testing for selected ELF symbol bindings in controlled Linux/glibc workloads.
+
+          - Capture real `LD_DEBUG=bindings,files` evidence, check explicit provider contracts, and compare saved observations.
+          - Preserve ELF identities, raw traces, coverage findings, and distinct PASS, FAIL, UNRESOLVED and INFRASTRUCTURE_ERROR outcomes.
+          - Includes fixes for relative DSO identity, partial provider observations, argv[0], signal cleanup, report schema versions and CI artifact ownership.
+
+          The prebuilt binary is Linux ARM64. Capture is validated on glibc 2.36 and 2.41; other versions return UNRESOLVED. Scope: one trusted process in the base linker namespace with immutable artifacts. This is not a general ABI compatibility check.
+
+          Validation includes race, vet, bounded parser fuzzing, real native ELF fixtures, CPython/zlib round trips, two upstream zlib builds, and installed/release binary checks. Both Linux CI environments must pass before publication.
+
+          Download the archive and SHA256SUMS, then run `sha256sum --check SHA256SUMS` before extracting. The archive includes the binary, Apache-2.0 license, README, icon, documentation and JSON schemas.
+          NOTES
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/bindwitness-${GITHUB_REF_NAME#v}-linux-arm64.tar.gz" dist/SHA256SUMS \
+            --verify-tag --draft --title "BindWitness $GITHUB_REF_NAME" --notes-file build/release-notes.md
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
