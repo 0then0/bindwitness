@@ -89,7 +89,7 @@ Capture/parser findings:
 - `MALFORMED_BINDING`, `TRACE_LINE_LIMIT`, `UNSUPPORTED_FILES_FORMAT`.
 - `UNSUPPORTED_PROCESS_TREE`, `UNSUPPORTED_NAMESPACE`, `UNSUPPORTED_RELOAD`,
   `UNSUPPORTED_EXEC`.
-- `NO_LOADER_STARTUP`, `UNTESTED_GLIBC`, `TRACE_TRUNCATED`.
+- `NO_LOADER_STARTUP`, `UNTESTED_GLIBC`, `UNVALIDATED_PLATFORM`, `TRACE_TRUNCATED`.
 - `WORKLOAD_DEADLINE`, `WORKLOAD_CANCELLED`, `WORKLOAD_SIGNAL`, `STREAM_INCOMPLETE`.
 - `LOADER_CHANGED`, `EXECUTABLE_CHANGED`.
 
@@ -132,3 +132,18 @@ do not prove a selected binding. The backend follows glibc's documented
 [debug categories](https://sourceware.org/glibc/manual/latest/html_node/Dynamic-Linker-Environment-Variables.html),
 but LD_DEBUG is not a stable machine protocol. Only the declared tested glibc
 formats can produce complete supported capture results.
+
+The release validation targets Linux AMD64 and ARM64 with glibc 2.36 and 2.41.
+Other architectures/operating systems produce `UNVALIDATED_PLATFORM` and other
+glibc versions produce `UNTESTED_GLIBC`; sufficient binding observations cannot
+turn those evidence gaps into PASS. A proven violation still retains FAIL.
+Offline evaluation checks the platform recorded in provenance and the saved ELF
+class/machine of the executable and observed binding objects, independently of
+the machine evaluating the report or historical files. Unused declared objects
+do not establish a workload platform. See [current validation status](validation.md).
+Ordinary source builds conservatively leave AMD64 capture unresolved while
+native validation is pending; validation candidates explicitly enable that
+matrix and are eligible for release only after all four native jobs succeed.
+Live capture also requires executable and loader identities to match the CLI's
+architecture and ELF64 class. Compat ELF32/x32 or foreign-machine artifacts
+remain unresolved.

@@ -1,0 +1,55 @@
+# Copy to .github/workflows/bindwitness.yml after v0.1.1 has passed its native
+# validation matrix and its release assets have been published.
+name: BindWitness AMD64 demo
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bindings:
+    runs-on: ubuntu-24.04
+    # The workload uses Debian/glibc 2.36, not the runner's Ubuntu userspace.
+    container:
+      image: golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437
+    defaults:
+      run:
+        shell: sh
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: 0then0/bindwitness
+          ref: v0.1.1
+      - name: Download and verify the native validated release binary
+        run: |
+          set -eu
+          test "$(uname -m)" = x86_64
+          test "$(getconf GNU_LIBC_VERSION)" = 'glibc 2.36'
+          version=0.1.1
+          asset="bindwitness-$version-linux-amd64.tar.gz"
+          url="https://github.com/0then0/bindwitness/releases/download/v$version"
+          mkdir -p build/download build/report
+          cd build/download
+          curl --fail --location --retry 3 "$url/$asset" -o "$asset"
+          curl --fail --location --retry 3 "$url/SHA256SUMS" -o SHA256SUMS
+          awk -v asset="$asset" '$2 == asset {print}' SHA256SUMS > selected.sha256
+          test "$(wc -l < selected.sha256)" -eq 1
+          sha256sum --check selected.sha256
+          tar xzf "$asset"
+          binary="bindwitness-$version-linux-amd64/bindwitness"
+          test "$("./$binary" --version)" = "bindwitness $version"
+          readelf -h "$binary" | grep -q 'Machine:.*Advanced Micro Devices X86-64'
+      - name: Build the existing native demo
+        run: sh scripts/build-fixtures.sh
+      - name: Gate on the required provider binding
+        # native.json explicitly runs ./host with a, b and consumer; it requires
+        # consumer -> shared_value -> a. Reversing a/b gives FAIL with result=12.
+        run: |
+          ./build/download/bindwitness-0.1.1-linux-amd64/bindwitness check \
+            --config examples/native.json --report build/report/bindings.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bindwitness-amd64-report
+          path: build/report/*.json

@@ -21,9 +21,22 @@ included test fixtures, not for running the CLI.
 
 ## Supported environments
 
-Capture is validated on Linux ARM64 with **glibc 2.36 and 2.41**. Other glibc
-versions return `UNRESOLVED` until their diagnostic format is validated. Offline
-`check` and `compare` are also tested on macOS ARM64.
+The v0.1.1 validation matrix targets Linux **AMD64 and ARM64**, each with
+**glibc 2.36 and 2.41** in pinned Debian Bookworm and Trixie userspaces. Native
+AMD64 verification is pending; ARM64 is the previously validated platform.
+See the [validation status and reproduction commands](docs/validation.md).
+Publishing v0.1.1 requires all four native jobs to pass. Other architecture/glibc
+combinations return `UNRESOLVED`; offline `check` and `compare` use the saved
+platform provenance and remain portable, including on macOS ARM64.
+
+Ordinary source builds keep AMD64 capture `UNRESOLVED` while its native
+verification is pending. The validation script explicitly enables AMD64 in
+candidate builds on both architectures; only the complete passing matrix makes
+those candidates eligible for release. This build setting does not certify an
+unexecuted combination.
+
+An Ubuntu 24.04 runner executes the workload inside the pinned Debian container.
+This validates that Debian userspace, not native Ubuntu's different glibc version.
 
 The capture scope is one process in the base linker namespace, with immutable
 artifacts and no unload/reload cycles. Use **absolute paths for selected shared
@@ -36,8 +49,11 @@ does not perform general ABI analysis or predict unexecuted paths.
 
 ## Quick start
 
-Prebuilt Linux ARM64 binaries are available from [GitHub Releases](https://github.com/0then0/bindwitness/releases).
-Download the archive and `SHA256SUMS`, and verify the checksum before extracting.
+The v0.1.1 release automation prepares Linux AMD64 and ARM64 archives from the
+native validated binaries. AMD64 availability remains pending validation and
+publication. Check [GitHub Releases](https://github.com/0then0/bindwitness/releases)
+for published assets; download the matching archive and `SHA256SUMS`, and verify
+its checksum before extracting.
 
 Clone the repository and build with Go 1.25 or newer:
 
@@ -47,6 +63,10 @@ cd bindwitness
 mkdir -p build
 CGO_ENABLED=0 go build -trimpath -o build/bindwitness ./cmd/bindwitness
 ```
+
+On AMD64, use the [native validation script](docs/validation.md#run-the-full-linux-checks)
+to prepare a candidate; the ordinary source build above conservatively remains
+unresolved until native AMD64 validation is complete.
 
 On supported Linux, build the demonstration with GCC or Clang and check it:
 
@@ -143,6 +163,12 @@ See [report format and limitations](docs/report-format.md) and the versioned
 The [validation guide](docs/validation.md) explains Linux containers, race and
 fuzz checks, installed/release binaries, real CPython/zlib validation and release
 packaging. [GitHub Actions](.github/workflows/ci.yml) uses the same scripts.
+
+The [AMD64 GitHub Actions example](examples/github-actions-amd64.yml) downloads
+the release binary, verifies its checksum and checks the native demo's explicit
+required provider contract in Debian Bookworm. Copy it into `.github/workflows/`
+after v0.1.1 is published. It preserves the report on success or failure and
+gates CI on the BindWitness exit code.
 
 [testdata](testdata/README.md) is part of the test suite: it contains C source
 fixtures, real loader traces and representative reports with provenance. Keep it

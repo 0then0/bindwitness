@@ -72,7 +72,11 @@ BindWitness replaces inherited `LD_DEBUG` with `bindings,files`, removes
 `LD_DEBUG_OUTPUT`, and records their previous values. Overrides of these two
 managed variables are rejected. It does not automatically change `LD_BIND_NOW`,
 preload, library paths or plugin loading flags. Explicit linker overrides are
-retained in provenance; eager binding changes the meaning of workload coverage.
+retained in provenance. For example, `"environment": {"LD_BIND_NOW": "1"}`
+explicitly requests eager binding. Required coverage means that a matching
+binding diagnostic was observed. With either eager or lazy binding, this is not
+proof that the function executed, nor a call count. The native validation suite
+checks both profiles without automatically enabling eager binding.
 
 Stdin is closed. Output is drained concurrently and bounded; excess bytes are
 discarded. The mixed stderr budget is `trace_bytes + stderr_bytes`, then each

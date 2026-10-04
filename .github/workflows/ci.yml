@@ -7,48 +7,89 @@ permissions:
   contents: read
 jobs:
   linux:
-    runs-on: ubuntu-24.04-arm
+    name: Linux ${{ matrix.arch }} / ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: bookworm
+            arch: amd64
+            runner: ubuntu-24.04
+            glibc: '2.36'
             base: golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437
           - name: trixie
+            arch: amd64
+            runner: ubuntu-24.04
+            glibc: '2.41'
             base: golang:1.25-trixie@sha256:2c4c60ef415fbfa5e90300722293bef36c5e63fae17570ce18f580af933dbd73
+          - name: bookworm
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            glibc: '2.36'
+            base: golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437
+          - name: trixie
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            glibc: '2.41'
+            base: golang:1.25-trixie@sha256:2c4c60ef415fbfa5e90300722293bef36c5e63fae17570ce18f580af933dbd73
+    env:
+      VALIDATION_OUT: build/validation/${{ matrix.name }}-${{ matrix.arch }}
+      VALIDATION_IMAGE: ${{ matrix.base }}
+      VALIDATION_RUNNER: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
+      - name: Require a native runner and Docker daemon
+        run: |
+          normalize_arch() {
+            case "$1" in
+              x86_64|amd64) echo amd64 ;;
+              aarch64|arm64) echo arm64 ;;
+              *) return 1 ;;
+            esac
+          }
+          test "$(uname -s)" = Linux
+          test "$(normalize_arch "$(uname -m)")" = '${{ matrix.arch }}'
+          test "$(docker info --format '{{.OSType}}')" = linux
+          test "$(normalize_arch "$(docker info --format '{{.Architecture}}')")" = '${{ matrix.arch }}'
       - name: Build immutable validation environment
-        run: docker build -f scripts/validation.Dockerfile --build-arg BASE='${{ matrix.base }}' -t bindwitness-validation .
+        run: docker build --platform 'linux/${{ matrix.arch }}' -f scripts/validation.Dockerfile --build-arg BASE="$VALIDATION_IMAGE" -t bindwitness-validation .
       - name: Race, fuzz, native, CPython and release checks
-        run: docker run --rm -v "$PWD:/work" -w /work bindwitness-validation sh scripts/validate.sh 'build/validation/${{ matrix.name }}'
+        run: |
+          docker run --rm --platform 'linux/${{ matrix.arch }}' -v "$PWD:/work" -w /work \
+            -e VALIDATION_IMAGE -e VALIDATION_RUNNER bindwitness-validation \
+            sh scripts/validate.sh "$VALIDATION_OUT" '${{ matrix.arch }}' '${{ matrix.glibc }}' 1.25.14
       - name: Two upstream zlib installations
         if: matrix.name == 'bookworm'
         run: |
-          docker run --rm -v "$PWD:/work" -w /work bindwitness-validation sh -c '
-            sh scripts/build-zlib-roots.sh /work/build/zlib-roots
-            env LD_LIBRARY_PATH=/opt/cpython/lib PYTHONHOME=/opt/cpython /opt/cpython/bin/python3 scripts/zlib-validation.py \
-              build/validation/bookworm/installed/bindwitness build/zlib-comparison build/zlib-roots/one build/zlib-roots/two
-          '
+          docker run --rm --platform 'linux/${{ matrix.arch }}' -v "$PWD:/work" -w /work \
+            -e VALIDATION_OUT bindwitness-validation sh -c '
+              sh scripts/build-zlib-roots.sh "$VALIDATION_OUT/zlib-roots"
+              env LD_LIBRARY_PATH=/opt/cpython/lib PYTHONHOME=/opt/cpython /opt/cpython/bin/python3 scripts/zlib-validation.py \
+                "$VALIDATION_OUT/release/bindwitness" "$VALIDATION_OUT/zlib-comparison" \
+                "$VALIDATION_OUT/zlib-roots/one" "$VALIDATION_OUT/zlib-roots/two"
+            '
       - name: Give runner ownership of validation artifacts
         if: always()
         run: |
-          if [ -d build ]; then
-            sudo chown -R "$(id -u):$(id -g)" build
+          if [ -d "$VALIDATION_OUT" ]; then
+            sudo chown -R "$(id -u):$(id -g)" "$VALIDATION_OUT"
           fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: reports-${{ matrix.name }}-arm64
-          path: |
-            build/validation/${{ matrix.name }}/**/*.json
-            build/validation/${{ matrix.name }}/*.txt
-            build/validation/${{ matrix.name }}/release/bindwitness
-            build/zlib-comparison/*.json
+          name: reports-${{ matrix.name }}-${{ matrix.arch }}
+          path: ${{ env.VALIDATION_OUT }}
+      - uses: actions/upload-artifact@v7
+        if: success() && matrix.name == 'bookworm'
+        with:
+          name: validated-linux-${{ matrix.arch }}
+          path: ${{ env.VALIDATION_OUT }}/release
+          if-no-files-found: error
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: linux
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: write
@@ -57,34 +98,32 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v6
-      - name: Package the validated Linux ARM64 binary
+      - name: Package both validated binaries from this workflow run
         run: |
-          gh run download "$GITHUB_RUN_ID" --name reports-bookworm-arm64 --dir build/release-artifact
-          binary=build/release-artifact/validation/bookworm/release/bindwitness
-          chmod +x "$binary"
-          test "$GITHUB_REF_NAME" = "v$(sed -n 's/^const Version = "\(.*\)"$/\1/p' internal/witness/types.go)"
-          test "$("$binary" --version)" = "bindwitness ${GITHUB_REF_NAME#v}"
-          sh scripts/package-release.sh "$binary"
+          version=$(sed -n 's/^const Version = "\(.*\)"$/\1/p' internal/witness/types.go)
+          test "$GITHUB_REF_NAME" = "v$version"
+          test -f "docs/releases/$GITHUB_REF_NAME.md"
+          for arch in amd64 arm64; do
+            artifact="build/release-artifact/$arch"
+            gh run download "$GITHUB_RUN_ID" --name "validated-linux-$arch" --dir "$artifact"
+            binary="$artifact/bindwitness"
+            (cd "$artifact" && sha256sum --check SHA256SUMS)
+            test "$(cat "$artifact/version.txt")" = "bindwitness $version"
+            grep -qx "architecture=$arch" "$artifact/environment.txt"
+            grep -qx 'glibc=glibc 2.36' "$artifact/environment.txt"
+            grep -qx 'go=go1.25.14' "$artifact/environment.txt"
+            grep -qx 'capture_profile=native-matrix-candidate' "$artifact/environment.txt"
+            chmod +x "$binary"
+          done
+          python3 scripts/test-package-release.py \
+            build/release-artifact/amd64/bindwitness build/release-artifact/arm64/bindwitness dist
+          test "$(wc -l < dist/SHA256SUMS)" -eq 2
           (cd dist && sha256sum --check SHA256SUMS)
-          mkdir -p build/release-check
-          tar xzf "dist/bindwitness-${GITHUB_REF_NAME#v}-linux-arm64.tar.gz" -C build/release-check
-          cmp "$binary" "build/release-check/bindwitness-${GITHUB_REF_NAME#v}-linux-arm64/bindwitness"
-      - name: Publish the release with archive and checksum
+      - name: Publish the release with both archives and common checksum
         run: |
-          cat > build/release-notes.md <<'NOTES'
-          BindWitness v0.1.0 is the first public release: regression testing for selected ELF symbol bindings in controlled Linux/glibc workloads.
-
-          - Capture real `LD_DEBUG=bindings,files` evidence, check explicit provider contracts, and compare saved observations.
-          - Preserve ELF identities, raw traces, coverage findings, and distinct PASS, FAIL, UNRESOLVED and INFRASTRUCTURE_ERROR outcomes.
-          - Includes fixes for relative DSO identity, partial provider observations, argv[0], signal cleanup, report schema versions and CI artifact ownership.
-
-          The prebuilt binary is Linux ARM64. Capture is validated on glibc 2.36 and 2.41; other versions return UNRESOLVED. Scope: one trusted process in the base linker namespace with immutable artifacts. This is not a general ABI compatibility check.
-
-          Validation includes race, vet, bounded parser fuzzing, real native ELF fixtures, CPython/zlib round trips, two upstream zlib builds, and installed/release binary checks. Both Linux CI environments must pass before publication.
-
-          Download the archive and SHA256SUMS, then run `sha256sum --check SHA256SUMS` before extracting. The archive includes the binary, Apache-2.0 license, README, icon, documentation and JSON schemas.
-          NOTES
           gh release create "$GITHUB_REF_NAME" \
+            "dist/bindwitness-${GITHUB_REF_NAME#v}-linux-amd64.tar.gz" \
             "dist/bindwitness-${GITHUB_REF_NAME#v}-linux-arm64.tar.gz" dist/SHA256SUMS \
-            --verify-tag --draft --title "BindWitness $GITHUB_REF_NAME" --notes-file build/release-notes.md
+            --verify-tag --draft --title "BindWitness $GITHUB_REF_NAME" \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md"
           gh release edit "$GITHUB_REF_NAME" --draft=false --latest

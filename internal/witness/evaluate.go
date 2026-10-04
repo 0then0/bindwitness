@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 // ValidateObservation recomputes parser results from embedded evidence, without
@@ -113,6 +115,55 @@ func failure(r *Result, f Finding) {
 	r.Outcome = Fail
 	r.BindingVerdict = Fail
 }
+
+func observationELFPlatformIssue(o *Observation) *Finding {
+	// Inspect only the saved executable and objects actually observed in the
+	// supported process/namespace. Declared objects can remain unloaded.
+	names := map[string]string{}
+	executable := func(name string) {
+		if name == "" {
+			return
+		}
+		names[name] = "workload executable " + name
+		if strings.Contains(name, "/") && !filepath.IsAbs(name) {
+			path := absolute(o.Provenance.WorkingDirectory, name)
+			names[path] = "workload executable " + path
+		}
+	}
+	if len(o.Provenance.Command) > 0 {
+		executable(o.Provenance.Command[0])
+	}
+	pid := strconv.Itoa(o.Provenance.PID)
+	for _, line := range o.Trace {
+		p := prefixRE.FindStringSubmatch(line)
+		if p != nil && p[1] == pid && strings.HasPrefix(p[2], "transferring control:") {
+			executable(strings.TrimSpace(strings.TrimPrefix(p[2], "transferring control:")))
+		}
+	}
+	for _, b := range o.Bindings {
+		if b.PID != o.Provenance.PID || b.ReferenceNamespace != 0 || b.ProviderNamespace != 0 {
+			continue
+		}
+		for _, name := range []string{b.Reference, b.Provider} {
+			if _, known := names[name]; !known {
+				names[name] = "observed object " + name
+			}
+		}
+	}
+	for _, name := range sortedKeys(names) {
+		identity, ok := o.Objects[name]
+		// Uninspectable pseudo-objects have no ELF identity. Existing identity
+		// checks still reject such objects when selected by the contract.
+		if !ok || identity.ELFClass == "" && identity.Machine == "" {
+			continue
+		}
+		if issue := elfArtifactPlatformIssue(o.Provenance.Architecture, names[name], identity); issue != nil {
+			return issue
+		}
+	}
+	return nil
+}
+
 func captureIssues(r *Result, o *Observation, side string) {
 	if !o.Capture.Complete {
 		unresolved(r, Finding{ID: "CAPTURE_INCOMPLETE", Message: side + " capture incomplete"})
@@ -120,6 +171,16 @@ func captureIssues(r *Result, o *Observation, side string) {
 	for _, f := range o.Capture.Issues {
 		f.Message = side + " " + f.Message
 		unresolved(r, f)
+	}
+	// Old reports can predate the architecture boundary. Evaluate their recorded
+	// provenance conservatively, without depending on the current host platform.
+	if f := capturePlatformIssue(o.Provenance.OS, o.Provenance.Architecture, o.Provenance.GlibcVersion); f != nil && !slices.ContainsFunc(o.Capture.Issues, func(saved Finding) bool { return saved.ID == f.ID }) {
+		f.Message = side + " " + f.Message
+		unresolved(r, *f)
+	}
+	if f := observationELFPlatformIssue(o); f != nil && !slices.ContainsFunc(o.Capture.Issues, func(saved Finding) bool { return saved.ID == f.ID }) {
+		f.Message = side + " " + f.Message
+		unresolved(r, *f)
 	}
 }
 func Evaluate(o *Observation, c Config) *Result {

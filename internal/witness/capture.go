@@ -114,6 +114,60 @@ func glibcVersion(loader string, env map[string]string) (string, error) {
 
 var testedGlibc = map[string]bool{"2.36": true, "2.41": true}
 
+var testedCapturePlatforms = map[[3]string]bool{
+	{"linux", "amd64", "2.36"}: true,
+	{"linux", "amd64", "2.41"}: true,
+	{"linux", "arm64", "2.36"}: true,
+	{"linux", "arm64", "2.41"}: true,
+}
+
+// Native validation candidates enable AMD64 via -X. Such binaries become
+// distributable only after the entire architecture/glibc matrix succeeds.
+var enableAMD64Capture = "false"
+
+// Use the evidence's platform, including for portable offline evaluation.
+func capturePlatformIssue(osName, architecture, glibc string) *Finding {
+	if testedCapturePlatforms[[3]string{osName, architecture, glibc}] {
+		if architecture == "amd64" && enableAMD64Capture != "true" {
+			return &Finding{ID: "UNVALIDATED_PLATFORM", Message: "native amd64 validation is pending; capture is not enabled in this build"}
+		}
+		return nil
+	}
+	if !testedGlibc[glibc] {
+		return &Finding{ID: "UNTESTED_GLIBC", Message: "parser was not validated against glibc " + glibc}
+	}
+	return &Finding{ID: "UNVALIDATED_PLATFORM", Message: fmt.Sprintf("capture was not validated for %s/%s with glibc %s", osName, architecture, glibc)}
+}
+
+func captureELFPlatformIssue(architecture string, executable, loader Identity) *Finding {
+	for _, artifact := range []struct {
+		name     string
+		identity Identity
+	}{{"workload executable", executable}, {"loader", loader}} {
+		if issue := elfArtifactPlatformIssue(architecture, artifact.name, artifact.identity); issue != nil {
+			return issue
+		}
+	}
+	return nil
+}
+
+func elfArtifactPlatformIssue(architecture, name string, identity Identity) *Finding {
+	var machine string
+	switch architecture {
+	case "amd64":
+		machine = "EM_X86_64"
+	case "arm64":
+		machine = "EM_AARCH64"
+	default:
+		// The platform boundary already rejects other architectures.
+		return nil
+	}
+	if identity.ELFClass != "ELFCLASS64" || identity.Machine != machine {
+		return &Finding{ID: "UNVALIDATED_PLATFORM", Message: fmt.Sprintf("%s has ELF class/machine %s/%s; capture requires ELFCLASS64/%s for %s", name, identity.ELFClass, identity.Machine, machine, architecture)}
+	}
+	return nil
+}
+
 type snapshot struct {
 	identity Identity
 	info     os.FileInfo
@@ -211,8 +265,11 @@ func Capture(c Config) (*Observation, error) {
 	obs.Bindings = events
 	obs.Capture.Issues = issues
 	add := func(id, msg string) { obs.Capture.Issues = append(obs.Capture.Issues, Finding{ID: id, Message: msg}) }
-	if !testedGlibc[ver] {
-		add("UNTESTED_GLIBC", "parser was not validated against glibc "+ver)
+	if issue := capturePlatformIssue(p.OS, p.Architecture, p.GlibcVersion); issue != nil {
+		add(issue.ID, issue.Message)
+	}
+	if issue := captureELFPlatformIssue(p.Architecture, exeBefore, loaderBefore); issue != nil {
+		add(issue.ID, issue.Message)
 	}
 	if obs.Capture.TraceTruncated {
 		add("TRACE_TRUNCATED", "diagnostics exceeded a capture limit")

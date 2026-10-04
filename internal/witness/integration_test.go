@@ -45,6 +45,48 @@ func assertOutcome(t *testing.T, o *Observation, c Config, want Outcome, id stri
 		t.Fatalf("want %s/%s, got %s: %+v capture %+v", want, id, r.Outcome, r.Findings, o.Capture)
 	}
 }
+
+func TestNativeEagerBindings(t *testing.T) {
+	root := nativeFixtures(t)
+	for _, tc := range []struct {
+		name, first, second, provider, symbol, finding string
+		outcome                                        Outcome
+	}{
+		{"correct provider", "a", "b", "a", "shared_value", "", Pass},
+		{"wrong provider", "b", "a", "b", "shared_value", "PROVIDER_NOT_ALLOWED", Fail},
+		{"uncovered required", "a", "b", "a", "dormant", "REQUIRED_NOT_OBSERVED", Unresolved},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := nativeConfig(root)
+			c.Command[1], c.Command[2] = "./"+tc.first+"/libsame.so", "./"+tc.second+"/libsame.so"
+			c.Environment = map[string]string{"LD_BIND_NOW": "1"}
+			c.Selectors[0].Symbol = tc.symbol
+			o := observe(t, c)
+			assertOutcome(t, o, c, tc.outcome, tc.finding)
+			if o.Workload.Stdout != "result=12\n" || *o.Workload.ExitCode != 0 {
+				t.Fatal("eager binding changed fixture output", o.Workload)
+			}
+			if o.Provenance.EnvironmentOverrides["LD_BIND_NOW"] != "1" || o.Provenance.LinkerEnvironment["LD_BIND_NOW"] != "1" {
+				t.Fatal("explicit eager override absent from provenance", o.Provenance)
+			}
+			for _, b := range o.Bindings {
+				if b.Reference != filepath.Join(root, "consumer.so") || b.Symbol != "shared_value" {
+					continue
+				}
+				if b.Provider != filepath.Join(root, tc.provider, "libsame.so") || b.TraceLine < 1 || b.TraceLine > len(o.Trace) {
+					t.Fatal("wrong eager binding evidence", b)
+				}
+				line := o.Trace[b.TraceLine-1]
+				if !strings.Contains(line, "binding file ") || !strings.Contains(line, b.Provider) || !strings.Contains(line, "`shared_value'") {
+					t.Fatal("selected binding has no raw evidence", line)
+				}
+				return
+			}
+			t.Fatal("selected eager binding not observed")
+		})
+	}
+}
+
 func TestNativeBindings(t *testing.T) {
 	root := nativeFixtures(t)
 	c := nativeConfig(root)

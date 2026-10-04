@@ -11,14 +11,27 @@ func testObservation(provider, version string) *Observation {
 	if version != "" {
 		line += " [" + version + "]"
 	}
-	o := &Observation{SchemaVersion: 1, Kind: "observation", Provenance: Provenance{PID: 10, WorkingDirectory: "/scope"}, Workload: Workload{Started: true, Completed: true}, Capture: CaptureState{Complete: true, Issues: []Finding{}}, Trace: []string{"10: transferring control: /scope/main", line}, Objects: map[string]Identity{}}
+	o := &Observation{SchemaVersion: 1, Kind: "observation", Provenance: Provenance{OS: "linux", Architecture: "arm64", GlibcVersion: "2.36", PID: 10, WorkingDirectory: "/scope", Command: []string{"./main"}}, Workload: Workload{Started: true, Completed: true}, Capture: CaptureState{Complete: true, Issues: []Finding{}}, Trace: []string{"10: transferring control: /scope/main", line}, Objects: map[string]Identity{}}
 	o.Bindings, _ = ParseTrace(o.Trace, 10)
 	o.Provenance.TraceSHA256 = traceHash(o.Trace)
-	for _, name := range []string{"ref", provider} {
+	for _, name := range []string{"main", "ref", provider} {
 		p := "/scope/" + name + ".so"
+		if name == "main" {
+			p = "/scope/main"
+		}
 		o.Objects[p] = Identity{ObservedPath: p, ResolvedPath: p, SHA256: strings.Repeat("a", 64), ELFClass: "ELFCLASS64", Machine: "EM_AARCH64", Stability: "pre_post_unchanged"}
 	}
 	return o
+}
+
+func setObservationArchitectureForTest(o *Observation, architecture string) {
+	o.Provenance.Architecture = architecture
+	if architecture == "amd64" {
+		for name, identity := range o.Objects {
+			identity.Machine = "EM_X86_64"
+			o.Objects[name] = identity
+		}
+	}
 }
 
 func TestCheckReportSchemaVersion(t *testing.T) {
@@ -33,6 +46,101 @@ func TestCheckReportSchemaVersion(t *testing.T) {
 		if (err == nil) != (version == SchemaVersion) {
 			t.Fatalf("version %d: %v", version, err)
 		}
+	}
+}
+
+func TestOfflineCapturePlatformBoundary(t *testing.T) {
+	c := testConfig()
+	cc := CompareConfig{SchemaVersion: 1, LeftRoots: c.Roots, RightRoots: c.Roots, Objects: c.Objects, Selectors: c.Selectors}
+	for _, enabled := range []string{"false", "true"} {
+		t.Run("amd64-enabled="+enabled, func(t *testing.T) {
+			setAMD64CaptureForTest(t, enabled)
+			for _, tc := range []struct {
+				os, arch, glibc, issue string
+			}{
+				{"linux", "amd64", "2.36", ""},
+				{"linux", "amd64", "2.41", ""},
+				{"linux", "arm64", "2.36", ""},
+				{"linux", "arm64", "2.41", ""},
+				{"linux", "riscv64", "2.36", "UNVALIDATED_PLATFORM"},
+				{"linux", "386", "2.41", "UNVALIDATED_PLATFORM"},
+				{"darwin", "arm64", "2.36", "UNVALIDATED_PLATFORM"},
+				{"linux", "amd64", "2.39", "UNTESTED_GLIBC"},
+				{"linux", "arm64", "2.42", "UNTESTED_GLIBC"},
+				{"", "", "", "UNTESTED_GLIBC"},
+			} {
+				t.Run(tc.os+"/"+tc.arch+"/"+tc.glibc, func(t *testing.T) {
+					issue := tc.issue
+					if issue == "" && tc.arch == "amd64" && enabled != "true" {
+						issue = "UNVALIDATED_PLATFORM"
+					}
+					o := testObservation("a", "")
+					o.Provenance.OS, o.Provenance.GlibcVersion = tc.os, tc.glibc
+					setObservationArchitectureForTest(o, tc.arch)
+					path := filepath.Join(t.TempDir(), "observation.json")
+					if err := WriteJSON(path, o); err != nil {
+						t.Fatal(err)
+					}
+					saved, err := LoadObservation(path)
+					if err != nil {
+						t.Fatal(err)
+					}
+					want := Pass
+					if issue != "" {
+						want = Unresolved
+					}
+					for _, r := range []*Result{Evaluate(saved, c), Compare(saved, saved, cc)} {
+						if r.Outcome != want || r.BindingVerdict != want || issue != "" && !hasFinding(r.Findings, issue) {
+							t.Fatalf("want %s/%s from saved provenance, got %+v", want, issue, r)
+						}
+					}
+				})
+			}
+		})
+	}
+}
+
+func setAMD64CaptureForTest(t *testing.T, enabled string) {
+	t.Helper()
+	previous := enableAMD64Capture
+	enableAMD64Capture = enabled
+	t.Cleanup(func() { enableAMD64Capture = previous })
+}
+
+func TestUnsupportedPlatformPreservesFailure(t *testing.T) {
+	setAMD64CaptureForTest(t, "false")
+	c := testConfig()
+	cc := CompareConfig{SchemaVersion: 1, LeftRoots: c.Roots, RightRoots: c.Roots, Objects: c.Objects, Selectors: c.Selectors}
+	for _, tc := range []struct{ arch, glibc, issue string }{
+		{"amd64", "2.36", "UNVALIDATED_PLATFORM"},
+		{"riscv64", "2.36", "UNVALIDATED_PLATFORM"},
+		{"arm64", "2.39", "UNTESTED_GLIBC"},
+	} {
+		t.Run(tc.arch+"/"+tc.glibc, func(t *testing.T) {
+			o := testObservation("b", "")
+			o.Provenance.GlibcVersion = tc.glibc
+			setObservationArchitectureForTest(o, tc.arch)
+			for _, savedIssue := range []bool{false, true} {
+				if savedIssue {
+					o.Capture.Complete = false
+					o.Capture.Issues = []Finding{{ID: tc.issue, Message: "saved capture platform issue"}}
+				}
+				for _, r := range []*Result{Evaluate(o, c), Compare(testObservation("a", ""), o, cc)} {
+					if r.Outcome != Fail || r.BindingVerdict != Fail || !hasFinding(r.Findings, tc.issue) {
+						t.Fatalf("platform issue hid proven failure: %+v", r)
+					}
+					count := 0
+					for _, f := range r.Findings {
+						if f.ID == tc.issue {
+							count++
+						}
+					}
+					if count != 1 {
+						t.Fatalf("platform issue repeated %d times", count)
+					}
+				}
+			}
+		})
 	}
 }
 
