@@ -163,7 +163,7 @@ integration case rather than an exact reproduction of the published upstream fai
 The [AMD64 GitHub Actions example](examples/github-actions-amd64.yml) downloads
 the release binary, verifies its checksum and checks the native demo's explicit
 required provider contract in Debian Bookworm. Copy it into `.github/workflows/`
-to run the published v0.1.1 demonstration. It preserves the report on success or
+to run the published v0.1.2 demonstration. It preserves the report on success or
 failure and gates CI on the BindWitness exit code.
 
 [testdata](testdata/README.md) is part of the test suite: it contains C source

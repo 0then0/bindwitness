@@ -207,8 +207,8 @@ sh scripts/package-release.sh build/validation/bookworm-arm64/release/bindwitnes
 (cd dist && sha256sum --check SHA256SUMS)
 ```
 
-This creates `dist/bindwitness-0.1.1-linux-amd64.tar.gz`,
-`dist/bindwitness-0.1.1-linux-arm64.tar.gz` and a common `dist/SHA256SUMS`.
+This creates `dist/bindwitness-0.1.2-linux-amd64.tar.gz`,
+`dist/bindwitness-0.1.2-linux-arm64.tar.gz` and a common `dist/SHA256SUMS`.
 Packaging derives the version from the CLI source and requires the adjacent
 `version.txt` and binary `SHA256SUMS` written by native validation. It checks the
 recorded version and input hash before creating output, without executing a
@@ -226,10 +226,10 @@ The release job downloads each validated Bookworm binary
 from that same workflow run into a separate directory. It checks CLI/source/tag
 versions, ELF machine, archive checksums and extracted binary equality, and
 publishes both archives and the common `SHA256SUMS`. It never rebuilds a binary.
-Release notes are maintained in [releases/v0.1.1.md](releases/v0.1.1.md).
+Release notes are maintained in [releases/v0.1.2.md](releases/v0.1.2.md).
 
 The [AMD64 consumer example](../examples/github-actions-amd64.yml) downloads the
-published v0.1.1 AMD64 archive and common checksum file,
+published v0.1.2 AMD64 archive and common checksum file,
 verifies exactly the selected archive, uses the existing explicit native contract
 with `required: true`, creates `build/report/` before capture, preserves the JSON
 report using `if: always()`, and fails CI on every nonzero BindWitness exit code.

@@ -37,7 +37,7 @@ func TestReportWriteFailure(t *testing.T) {
 }
 func TestCLIVersion(t *testing.T) {
 	var out, errout bytes.Buffer
-	if code := run([]string{"--version"}, &out, &errout); code != 0 || out.String() != "bindwitness 0.1.1\n" {
+	if code := run([]string{"--version"}, &out, &errout); code != 0 || out.String() != "bindwitness 0.1.2\n" {
 		t.Fatal(code, out.String())
 	}
 }

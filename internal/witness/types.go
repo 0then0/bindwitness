@@ -1,7 +1,7 @@
 // Package witness observes glibc diagnostics and evaluates exact binding contracts.
 package witness
 
-const Version = "0.1.1"
+const Version = "0.1.2"
 const SchemaVersion = 1
 
 type Outcome string
