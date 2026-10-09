@@ -1,5 +1,4 @@
-# Copy to .github/workflows/bindwitness.yml after v0.1.1 has passed its native
-# validation matrix and its release assets have been published.
+# Copy to .github/workflows/bindwitness.yml to run the published v0.1.1 demo.
 name: BindWitness AMD64 demo
 on:
   push:

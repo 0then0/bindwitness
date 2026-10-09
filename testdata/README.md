@@ -1,8 +1,8 @@
-# Test fixtures
+# Test fixtures and saved evidence
 
-This directory is part of BindWitness's reproducible test suite and is kept in
-the public repository. Go excludes `testdata` from ordinary package discovery;
-its contents are not runtime dependencies of the CLI.
+Use this directory to reproduce native tests, exercise the parser and replay
+saved binding evidence. Go excludes `testdata` from ordinary package discovery;
+the installed CLI does not depend on these files.
 
 - `native/`: small C sources used to build real executable/shared-object fixtures.
   Build them with `sh scripts/build-fixtures.sh`; the default output is

@@ -1,0 +1,36 @@
+{
+  "classification": "real integration case, not exact upstream symptom reproduction",
+  "build_root": "/work/build/validation/perl-zlib-bookworm-arm64/build",
+  "repetitions": 10,
+  "image": "golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437",
+  "runner": "local",
+  "global_load_flag": 1,
+  "profile": "lazy; no LD_BIND_NOW override",
+  "harness_environment": {
+    "PATH": "/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "LC_ALL": "C",
+    "PERL5LIB": "",
+    "PERL5OPT": "",
+    "PERL_DL_NONLAZY": "0"
+  },
+  "inputs": {
+    "perl": {
+      "path": "/usr/bin/perl",
+      "sha256": "a87e4138d1e33d240bd31be3dd5ec59017f729b7aa9bd6b3dc012dfcab85d69b"
+    },
+    "system-zlib": {
+      "path": "/usr/lib/aarch64-linux-gnu/libz.so.1.2.13",
+      "sha256": "ffb1ab496e6eced03ab679075f9f2c415c7728a145cc7f63d614497102d73822"
+    },
+    "extension-2.103": {
+      "path": "/work/build/validation/perl-zlib-bookworm-arm64/build/Compress-Raw-Zlib-2.103/blib/arch/auto/Compress/Raw/Zlib/Zlib.so",
+      "sha256": "6ef590d5e2f41d228d697a90c8f7679a5950ddfd44656851f3819487d21cc329"
+    },
+    "extension-2.105": {
+      "path": "/work/build/validation/perl-zlib-bookworm-arm64/build/Compress-Raw-Zlib-2.105/blib/arch/auto/Compress/Raw/Zlib/Zlib.so",
+      "sha256": "c20c253e835a8dce5fc3581987854b9a5f486846ae97abd3473cf3e42772ade8"
+    }
+  },
+  "workload_sha256": "328319e1bad39cfa7c1680241870b1ee202b19c453d8193c7d86281144f77fd7",
+  "binary_sha256": "05a72283dc9896a9e50900da1f4a587e4bf68d609fb1b95eb3b2f2283dd0e62f"
+}

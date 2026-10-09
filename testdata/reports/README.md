@@ -14,12 +14,18 @@ cases; real CPython/zlib contracts; and two upstream zlib builds compared as bot
 distinct providers and artifacts of one logical provider. Comparison reports
 include both complete observations, with raw traces and identities.
 
+`bookworm/perl-zlib/` adds real Perl extension load-order sensitivity, the upstream
+prefix control and an unexercised-workload coverage comparison. The
+[case study](../../docs/perl-zlib-case-study.md) documents the actual environment
+and limits; these reports do not claim the original upstream symptom was reproduced.
+
 ## Replay a report
 
 From the repository root, with a locally built CLI:
 
 ```sh
 mkdir -p build
+go build -o build/bindwitness ./cmd/bindwitness
 ./build/bindwitness check \
   --config testdata/reports/bookworm/native/native-positive.config.json \
   --observation testdata/reports/bookworm/native/native-positive.json \

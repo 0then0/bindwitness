@@ -16,23 +16,18 @@ Use it when changing native dependencies, plugin loading order, or a Python
 native extension's environment. A smoke test can produce the same output while
 binding to the wrong library; BindWitness checks the provider itself.
 
-Version 0.1 uses only the Go standard library. A C compiler is needed for the
+The CLI uses only the Go standard library. A C compiler is needed for the
 included test fixtures, not for running the CLI.
 
 ## Supported environments
 
-The v0.1.1 validation matrix targets Linux **AMD64 and ARM64**, each with
-**glibc 2.36 and 2.41** in pinned Debian Bookworm and Trixie userspaces. All four
-native jobs passed in [GitHub Actions](https://github.com/0then0/bindwitness/actions/runs/37236935579).
-See the [validation status and reproduction commands](docs/validation.md).
-Publishing v0.1.1 requires all four native jobs to pass. Other architecture/glibc
-combinations return `UNRESOLVED`; offline `check` and `compare` use the saved
+Native capture supports Linux **AMD64 and ARM64**, each with **glibc 2.36 and
+2.41**. The [v0.1.1 release validation](https://github.com/0then0/bindwitness/actions/runs/37238043266)
+passed all four combinations in pinned Debian Bookworm and Trixie userspaces.
+See the [validation guide](docs/validation.md) for environments and commands.
+Other architecture/glibc combinations return `UNRESOLVED`; offline `check` and
+`compare` use the saved
 platform provenance and remain portable, including on macOS ARM64.
-
-Ordinary source builds enable the validated AMD64 and ARM64 combinations.
-Validation uses the same capture profile on both architectures; release binaries
-are eligible for publication only after the complete matrix passes in their own
-workflow run.
 
 An Ubuntu 24.04 runner executes the workload inside the pinned Debian container.
 This validates that Debian userspace, not native Ubuntu's different glibc version.
@@ -43,15 +38,15 @@ objects**: the loader's relative DSO names do not establish which working
 directory was used to load them. The executable's original argv[0] is preserved
 and can be relative. See [capture limitations](docs/report-format.md#capture-limitations).
 
-Native capture on macOS, Windows, musl, Mach-O and PE is outside v0.1. BindWitness
+Native capture on macOS, Windows, musl, Mach-O and PE is unsupported. BindWitness
 does not perform general ABI analysis or predict unexecuted paths.
 
 ## Quick start
 
-The v0.1.1 release automation prepares Linux AMD64 and ARM64 archives from the
-native validated binaries. Check [GitHub Releases](https://github.com/0then0/bindwitness/releases)
-for published assets; download the matching archive and `SHA256SUMS`, and verify
-its checksum before extracting.
+Download the Linux AMD64 or ARM64 archive and `SHA256SUMS` from
+[GitHub Releases](https://github.com/0then0/bindwitness/releases). Verify the
+archive's checksum before extracting. Archives contain the CLI, license and
+documentation; examples and validation workloads are in the source checkout.
 
 Clone the repository and build with Go 1.25 or newer:
 
@@ -158,11 +153,18 @@ The [validation guide](docs/validation.md) explains Linux containers, race and
 fuzz checks, installed/release binaries, real CPython/zlib validation and release
 packaging. [GitHub Actions](.github/workflows/ci.yml) uses the same scripts.
 
+The [Perl bundled/system zlib case study](docs/perl-zlib-case-study.md) uses real
+Compress::Raw::Zlib releases to demonstrate provider sensitivity to global load
+order and the upstream prefix fix. The workloads produce identical successful
+application output across different binding verdicts, with saved offline evidence,
+coverage controls and checks for failed library loads. This is an
+integration case rather than an exact reproduction of the published upstream failure.
+
 The [AMD64 GitHub Actions example](examples/github-actions-amd64.yml) downloads
 the release binary, verifies its checksum and checks the native demo's explicit
 required provider contract in Debian Bookworm. Copy it into `.github/workflows/`
-after v0.1.1 is published. It preserves the report on success or failure and
-gates CI on the BindWitness exit code.
+to run the published v0.1.1 demonstration. It preserves the report on success or
+failure and gates CI on the BindWitness exit code.
 
 [testdata](testdata/README.md) is part of the test suite: it contains C source
 fixtures, real loader traces and representative reports with provenance. Keep it
@@ -186,7 +188,7 @@ contract workflow for selected bindings of an actual workload.
 - [MONDO](https://www.cs.unm.edu/~donour/prof/PythonDC.pdf) monitors dynamic linking
   using loader traces and a graphical interface.
 
-BindWitness v0.1 uses ordinary glibc diagnostics, with no custom loader or
+BindWitness uses ordinary glibc diagnostics, with no custom loader or
 `LD_AUDIT` module. Binding events are not call counts, call stacks, proven dlsym
 callers or final IFUNC execution addresses.
 

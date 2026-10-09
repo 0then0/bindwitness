@@ -7,7 +7,8 @@ The schemas are [config.schema.json](config.schema.json) for capture/check and
 
 ## Capture and check
 
-Start from [examples/native.json](../examples/native.json). A contract contains:
+In a source checkout, start from [examples/native.json](../examples/native.json).
+A contract contains:
 
 - `command`: a nonempty argv array. No shell is added. argv[0] is preserved,
   and executable lookup uses the effective PATH and working directory.
@@ -90,7 +91,7 @@ sandbox or a supervisor for detached process trees.
 Start from [examples/compare.json](../examples/compare.json). Comparison declares
 `left_roots`, `right_roots`, `objects` and `selectors`, with no workload command.
 Pair corresponding artifact roots under the same root key. The object's relative
-path must be the same under the paired roots in v0.1.
+path must be the same under the paired roots in schema version 1.
 
 Use one logical ID when two artifacts represent the same provider, even after a
 rebuild. Compare records differing hashes in `artifact_changes`. Use different

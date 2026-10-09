@@ -69,6 +69,16 @@ jobs:
                 "$VALIDATION_OUT/release/bindwitness" "$VALIDATION_OUT/zlib-comparison" \
                 "$VALIDATION_OUT/zlib-roots/one" "$VALIDATION_OUT/zlib-roots/two"
             '
+      - name: Perl bundled/system zlib load order
+        if: matrix.name == 'bookworm'
+        run: |
+          docker run --rm --platform 'linux/${{ matrix.arch }}' -v "$PWD:/work" -w /work \
+            -e VALIDATION_OUT -e VALIDATION_IMAGE -e VALIDATION_RUNNER bindwitness-validation sh -c '
+              set -eu
+              sh scripts/build-perl-zlib-case.sh "$VALIDATION_OUT/perl-zlib/build"
+              python3 scripts/perl-zlib-validation.py "$VALIDATION_OUT/release/bindwitness" \
+                "$VALIDATION_OUT/perl-zlib/build" "$VALIDATION_OUT/perl-zlib/evidence"
+            '
       - name: Give runner ownership of validation artifacts
         if: always()
         run: |

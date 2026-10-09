@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "left_roots": {
+    "filesystem": "/"
+  },
+  "right_roots": {
+    "filesystem": "/"
+  },
+  "objects": {
+    "perl": {
+      "root": "filesystem",
+      "path": "usr/bin/perl",
+      "sha256": "a87e4138d1e33d240bd31be3dd5ec59017f729b7aa9bd6b3dc012dfcab85d69b"
+    },
+    "system-zlib": {
+      "root": "filesystem",
+      "path": "usr/lib/aarch64-linux-gnu/libz.so.1.2.13",
+      "sha256": "ffb1ab496e6eced03ab679075f9f2c415c7728a145cc7f63d614497102d73822"
+    },
+    "extension-2.103": {
+      "root": "filesystem",
+      "path": "work/build/validation/perl-zlib-bookworm-arm64/build/Compress-Raw-Zlib-2.103/blib/arch/auto/Compress/Raw/Zlib/Zlib.so",
+      "sha256": "6ef590d5e2f41d228d697a90c8f7679a5950ddfd44656851f3819487d21cc329"
+    },
+    "extension-2.105": {
+      "root": "filesystem",
+      "path": "work/build/validation/perl-zlib-bookworm-arm64/build/Compress-Raw-Zlib-2.105/blib/arch/auto/Compress/Raw/Zlib/Zlib.so",
+      "sha256": "c20c253e835a8dce5fc3581987854b9a5f486846ae97abd3473cf3e42772ade8"
+    }
+  },
+  "selectors": [
+    {
+      "reference": "extension-2.103",
+      "symbol": "deflate",
+      "trace_version": "",
+      "providers": [
+        "extension-2.103",
+        "system-zlib"
+      ],
+      "required": true
+    },
+    {
+      "reference": "extension-2.103",
+      "symbol": "inflate",
+      "trace_version": "",
+      "providers": [
+        "extension-2.103",
+        "system-zlib"
+      ],
+      "required": true
+    },
+    {
+      "reference": "extension-2.103",
+      "symbol": "zlibVersion",
+      "trace_version": "",
+      "providers": [
+        "extension-2.103",
+        "system-zlib"
+      ],
+      "required": true
+    }
+  ]
+}

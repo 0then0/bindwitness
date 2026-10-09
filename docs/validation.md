@@ -6,7 +6,7 @@ CPython and zlib are validation workloads, not dependencies of the CLI.
 
 ## Tested environments
 
-The v0.1.1 matrix has four native jobs using the same validation scripts:
+Native capture is validated in four environments:
 
 - Linux AMD64, Debian 12 Bookworm, glibc 2.36, Go 1.25.14: native GitHub Actions checks passed.
 - Linux AMD64, Debian 13 Trixie, glibc 2.41, Go 1.25.14: native GitHub Actions checks passed.
@@ -28,21 +28,15 @@ The workload executes inside a pinned Debian container; the runner's architectur
 does not establish the workload's glibc version. Native Ubuntu 24.04 userspace
 is outside this matrix. Other architecture/glibc combinations remain unresolved.
 
-Local Linux ARM64 validation uses Docker Desktop on a macOS ARM64 host, with
-two userspaces on the same ARM64 VM kernel. Local cross-builds only check
-packaging; native AMD64 evidence comes from the GitHub-hosted jobs above.
-Neither a cross-build nor QEMU establishes native validation. macOS ARM64 checks
-offline analysis only. Publishing v0.1.1 requires
-the entire native four-job GitHub Actions matrix to pass.
+Docker Desktop on an ARM64 Mac can run native ARM64 validation in its Linux VM.
+Running a foreign architecture under QEMU or cross-compiling checks different
+properties and does not establish native compatibility. Tests running directly
+on macOS cover portable parsing and offline evaluation only.
 
-Ordinary source builds enable the validated AMD64 and ARM64 combinations.
-`validate.sh` explicitly builds test/install/release
-candidates with `-X bindwitness/internal/witness.enableAMD64Capture=true`, on
-both architectures so released offline tools can evaluate either platform.
-This build setting selects the profile; native execution establishes validation.
-Candidates must not be published until all four jobs succeed in their own run.
-No runtime environment override automatically enables this setting or changes
-the binding profile.
+Source builds enable both validated architectures. `validate.sh` also sets
+`-X bindwitness/internal/witness.enableAMD64Capture=true` explicitly to record
+the build profile. This setting does not replace native execution or change the
+workload's loader environment.
 
 [scripts/validation.Dockerfile](../scripts/validation.Dockerfile) pins the images:
 
@@ -56,24 +50,9 @@ zlib extension. Saved raw trace provenance includes image references, file hashe
 and runtime details. Each validation run also writes OS, compiler, Go and kernel
 snapshots alongside its reports.
 
-All three existing pinned digests were inspected in the registry and are OCI
-multiarchitecture indexes containing `linux/amd64` and `linux/arm64` manifests.
-No pins or component versions were changed. Recheck the immutable indexes with
-`docker buildx imagetools inspect --raw IMAGE_REFERENCE`; selecting a runner alone
-is not a check that an arbitrary digest supports both architectures.
-
-## Local validation evidence
-
-During v0.1.1 development on 2026-10-05, the same validation scripts also passed
-locally in native ARM64 Bookworm and Trixie containers. Logs, environment snapshots,
-configs and reports are retained in `build/validation/v011-repair-bookworm-arm64/`
-and `build/validation/v011-repair-trixie-arm64/`. Bookworm's two-root comparison
-used the builds in `build/validation/v011-bookworm-arm64/zlib-roots/`.
-
-These development artifacts are excluded from Git. macOS checks cover offline
-analysis; cross-built files in
-`build/packaging-only/` cover packaging only. Native AMD64 validation and release
-binary provenance come from the GitHub Actions run linked above.
+All three pins provide AMD64 and ARM64 manifests. When changing an image pin,
+check its architecture manifests with
+`docker buildx imagetools inspect --raw IMAGE_REFERENCE` and rerun the matrix.
 
 ## Run the full Linux checks
 
@@ -186,6 +165,25 @@ of an upstream bug or evidence of external adoption.
 
 CI keeps this two-root check on Bookworm for both AMD64 and ARM64.
 
+## Perl bundled/system zlib load order
+
+The [real integration case](perl-zlib-case-study.md) builds pinned CPAN
+Compress::Raw::Zlib 2.103 and 2.105 with bundled zlib 1.2.12 and loads each
+alongside Bookworm's system libz. Reversing global load order changes 2.103's
+observed providers while preserving a successful round trip and identical stdout.
+The upstream `Perl_crz_*` prefix in 2.105 is the negative control. This is not
+an exact reproduction of the original AlmaLinux/RHEL failure.
+
+`build-perl-zlib-case.sh` and `perl-zlib-validation.py` use the existing CLI and
+reports, run 10 repetitions per explicit variant, replay every check offline,
+compare orders, check missing coverage without inferring provider changes, and
+require failed mandatory loads to stop the application with the original error.
+CI runs this external workload only in the two Bookworm jobs and preserves its
+artifacts through the always-upload step. Stored representative reports use
+ARM64 / glibc 2.36; each newly captured report records its actual platform.
+See the case study for the four scenarios, expected outcomes and reproduction
+commands.
+
 ## Saved evidence
 
 [testdata/reports](../testdata/reports/README.md) contains representative reports
@@ -222,16 +220,16 @@ and JSON schemas. It does not include development fixtures. Verify the checksum
 before extracting a distributed archive, then run `./bindwitness --version` and
 check your own contract. Packaging does not publish a GitHub release.
 
-With separate authorization, pushing `v0.1.1` runs the Linux matrix and publishes
-a GitHub release only after all four native environments pass, including both
-two-root zlib jobs. The release job downloads each validated Bookworm binary
+The release workflow runs for version tags and publishes only after all four
+native environments pass, including the Bookworm external integration cases.
+The release job downloads each validated Bookworm binary
 from that same workflow run into a separate directory. It checks CLI/source/tag
 versions, ELF machine, archive checksums and extracted binary equality, and
 publishes both archives and the common `SHA256SUMS`. It never rebuilds a binary.
 Release notes are maintained in [releases/v0.1.1.md](releases/v0.1.1.md).
 
-The [AMD64 consumer example](../examples/github-actions-amd64.yml) is runnable
-after publication. It downloads the AMD64 archive and common checksum file,
+The [AMD64 consumer example](../examples/github-actions-amd64.yml) downloads the
+published v0.1.1 AMD64 archive and common checksum file,
 verifies exactly the selected archive, uses the existing explicit native contract
 with `required: true`, creates `build/report/` before capture, preserves the JSON
 report using `if: always()`, and fails CI on every nonzero BindWitness exit code.
