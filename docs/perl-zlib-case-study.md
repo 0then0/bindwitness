@@ -218,6 +218,9 @@ round-trip variants. Upstream `make test` runs before binding validation.
 jobs using the validated release binary. Reports and build provenance are
 uploaded even when validation fails. A successful validation job means every
 declared expectation was met, including the expected FAIL and UNRESOLVED reports.
+The CI artifact stores the build directory as `perl-zlib/build.tar.gz`, preserving
+upstream filenames that are not accepted directly by GitHub's artifact uploader.
+Reports and configurations remain separate files for inspection and replay.
 
 This case uses existing `capture`, `check`, offline replay and `compare` commands.
 Perl, compilers and the external source packages are validation prerequisites;

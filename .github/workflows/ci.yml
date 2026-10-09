@@ -85,11 +85,19 @@ jobs:
           if [ -d "$VALIDATION_OUT" ]; then
             sudo chown -R "$(id -u):$(id -g)" "$VALIDATION_OUT"
           fi
+      - name: Archive Perl build evidence
+        if: always() && matrix.name == 'bookworm'
+        run: |
+          if [ -d "$VALIDATION_OUT/perl-zlib/build" ]; then
+            tar -czf "$VALIDATION_OUT/perl-zlib/build.tar.gz" -C "$VALIDATION_OUT/perl-zlib" build
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: reports-${{ matrix.name }}-${{ matrix.arch }}
-          path: ${{ env.VALIDATION_OUT }}
+          path: |
+            ${{ env.VALIDATION_OUT }}
+            !${{ env.VALIDATION_OUT }}/perl-zlib/build/**
       - uses: actions/upload-artifact@v7
         if: success() && matrix.name == 'bookworm'
         with:
