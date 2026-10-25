@@ -26,8 +26,8 @@ Native capture supports Linux **AMD64 and ARM64**, each with **glibc 2.36 and
 passed all four combinations in pinned Debian Bookworm and Trixie userspaces.
 See the [validation guide](docs/validation.md) for environments and commands.
 Other architecture/glibc combinations return `UNRESOLVED`; offline `check` and
-`compare` use the saved
-platform provenance and remain portable, including on macOS ARM64.
+`compare` use the saved platform provenance and remain portable, including on
+macOS ARM64.
 
 An Ubuntu 24.04 runner executes the workload inside the pinned Debian container.
 This validates that Debian userspace, not native Ubuntu's different glibc version.
@@ -202,6 +202,17 @@ symbols resolving to an earlier global TileLang stub.
 and [PR #11](https://github.com/pmqs/Compress-Raw-Zlib/pull/11) discuss zlib symbol
 collisions and prefixed bundled exports. These are upstream motivations; the
 included fixtures do not claim to reproduce those bugs.
+
+## Contributing and project policies
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, validation commands
+and pull request guidance. Report reproducible bugs and propose improvements
+through the [issue templates](https://github.com/0then0/bindwitness/issues/new/choose).
+Participation follows the [code of conduct](CODE_OF_CONDUCT.md).
+
+Report vulnerabilities privately using [SECURITY.md](SECURITY.md).
+The [changelog](CHANGELOG.md) summarizes released changes; detailed release notes
+are in [docs/releases](docs/releases).
 
 ## License
 

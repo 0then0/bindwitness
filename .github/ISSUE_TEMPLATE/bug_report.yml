@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible problem with capture, checking, comparison or documentation.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check existing issues and the documented capture limitations first.
+        Report vulnerabilities privately using SECURITY.md. Remove secrets and
+        confidential workload data before sharing configurations or reports.
+  - type: input
+    id: version
+    attributes:
+      label: BindWitness version or commit
+      description: Include the output of bindwitness --version or the source commit.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, CPU architecture, glibc version, and container image if applicable. For offline checks, distinguish the current host from the saved observation's platform.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the exact command, minimal configuration and steps. For documentation bugs, include the page and unclear or incorrect instruction.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and evidence
+      description: Include CLI exit code, report outcome, binding verdict and workload exit status where relevant. Attach a minimal sanitized reproduction; preserve original evidence separately.
+      render: text
+    validations:
+      required: true

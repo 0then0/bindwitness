@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a concrete improvement to BindWitness.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to verify, and what prevents the current workflow from doing it?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the observable result. Include an example command or contract if useful.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and scope
+      description: Describe existing workarounds and relevant platform or compatibility constraints.

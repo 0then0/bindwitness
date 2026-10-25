@@ -48,6 +48,10 @@ def check_packages(amd64, arm64, out):
     expected_files = [
         "LICENSE",
         "README.md",
+        "CONTRIBUTING.md",
+        "CODE_OF_CONDUCT.md",
+        "SECURITY.md",
+        "CHANGELOG.md",
         "docs/config.schema.json",
         "docs/report.schema.json",
         "docs/compare.schema.json",

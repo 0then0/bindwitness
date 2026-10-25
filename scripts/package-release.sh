@@ -56,7 +56,8 @@ trap 'rm -rf "$stage"' EXIT HUP INT TERM
 name=bindwitness-$version-linux-$arch
 mkdir -p "$stage/$name"
 cp "$binary" "$stage/$name/bindwitness"
-cp "$root/LICENSE" "$root/README.md" "$stage/$name/"
+cp "$root/LICENSE" "$root/README.md" "$root/CONTRIBUTING.md" \
+  "$root/CODE_OF_CONDUCT.md" "$root/SECURITY.md" "$root/CHANGELOG.md" "$stage/$name/"
 cp -R "$root/docs" "$stage/$name/docs"
 tar czf "$out/$name.tar.gz" -C "$stage" "$name"
 mkdir "$stage/extracted"

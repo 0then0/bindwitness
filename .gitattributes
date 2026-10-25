@@ -1,3 +1,29 @@
-# Keep real loader diagnostics and compiler output byte-for-byte, including blank lines.
+# Normalize source and documentation on every platform.
+* text=auto eol=lf
+*.go text diff=golang
+*.sh text
+*.py text
+*.pl text
+*.md text
+*.json text
+*.yml text
+*.yaml text
+
+# Binary assets and archives must not undergo line-ending conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.gz binary
+*.zip binary
+
+# Preserve captured loader diagnostics and report snapshots byte-for-byte.
+testdata/traces/** -text !eol
+testdata/reports/** -text !eol
+testdata/reports/**/README.md text eol=lf
+
+# Real diagnostic/compiler output can contain significant whitespace.
 testdata/traces/*.trace whitespace=-blank-at-eol
 testdata/reports/*/cc.txt whitespace=-blank-at-eof

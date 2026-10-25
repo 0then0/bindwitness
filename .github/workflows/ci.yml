@@ -5,10 +5,31 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  format:
+    name: Go formatting
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require gofmt-clean sources
+        run: |
+          docker run --rm --network none -v "$PWD:/work:ro" -w /work \
+            golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437 \
+            sh -eu -c '
+              unformatted=$(gofmt -l cmd internal)
+              if [ -n "$unformatted" ]; then
+                printf "Run gofmt on:\\n%s\\n" "$unformatted"
+                exit 1
+              fi
+            '
   linux:
     name: Linux ${{ matrix.arch }} / ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -106,8 +127,9 @@ jobs:
           if-no-files-found: error
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: linux
+    needs: [format, linux]
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: write
